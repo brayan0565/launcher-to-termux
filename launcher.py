@@ -6,7 +6,6 @@ import threading
 import time
 import pygame
 
-# --- Auto-installation des dépendances ---
 try:
     import requests
 except ImportError:
@@ -14,16 +13,13 @@ except ImportError:
     subprocess.check_call([sys.executable, "-m", "pip", "install", "requests"])
     import requests
 
-# Initialisation de Pygame
 pygame.init()
 
-# --- Configuration de la fenêtre ---
 WIDTH, HEIGHT = 1280, 720
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Ma Bibliothèque de Jeux - Termux Launcher")
 clock = pygame.time.Clock()
 
-# --- Configuration du Serveur et Dossiers ---
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 SERVER_URL = "http://192.168.1.202:8080"
 GAMES_DIR = os.path.join(SCRIPT_DIR, "installed_games")
@@ -31,7 +27,6 @@ GAMES_DIR = os.path.join(SCRIPT_DIR, "installed_games")
 if not os.path.exists(GAMES_DIR):
     os.makedirs(GAMES_DIR)
 
-# --- Détection et Unzip automatique du fichier icon.zip ---
 def extract_and_get_icon_dir():
     target_dir = os.path.join(SCRIPT_DIR, "icon")
     if not os.path.exists(target_dir):
@@ -59,7 +54,6 @@ def extract_and_get_icon_dir():
 
 ICON_DIR = extract_and_get_icon_dir()
 
-# --- Couleurs ---
 COLOR_BG = (10, 10, 25)
 COLOR_SIDEBAR_BG = (5, 5, 18)
 COLOR_CARD_BG = (20, 20, 45)
@@ -77,14 +71,12 @@ COLOR_PROGRESS_BG = (40, 40, 60)
 COLOR_PROGRESS_FILL = (0, 200, 255)
 COLOR_DARK_BOX = (25, 20, 55, 220)
 
-# --- Polices ---
 font_item = pygame.font.SysFont(None, 22)
 font_title = pygame.font.SysFont(None, 36)
 font_btn = pygame.font.SysFont(None, 24)
 font_sub = pygame.font.SysFont(None, 20)
 font_info = pygame.font.SysFont(None, 18)
 
-# --- Liste des jeux ---
 GAMES = [
     {
         "id": "gtavi",
@@ -130,13 +122,11 @@ GAMES = [
     }
 ]
 
-# --- Recherche du script start.sh ---
 def find_start_script(game_id):
     base_path = os.path.join(GAMES_DIR, game_id)
     if not os.path.exists(base_path):
         return None
 
-    # Recherche dans tous les sous-dossiers
     for root, _, files in os.walk(base_path):
         for f in files:
             if f.lower() == "start.sh":
@@ -147,31 +137,25 @@ def check_game_installed(game_id):
     if game_id == "gtavi":
         return os.path.exists(os.path.join(GAMES_DIR, "gtavi", "gtavi.py"))
     
-    # 1. Vérification si le script start.sh existe
     if find_start_script(game_id) is not None:
         return True
 
-    # 2. Vérification de secours : le dossier existe et contient des fichiers
     base_path = os.path.join(GAMES_DIR, game_id)
     if os.path.exists(base_path) and len(os.listdir(base_path)) > 0:
         return True
 
     return False
 
-# Suivi de l'état et de la progression
 install_status = {game["id"]: "idle" for game in GAMES}
 download_progress = {game["id"]: {"percent": 0.0, "text": "", "status_label": ""} for game in GAMES}
 
-# Pop-up d'erreur
 show_error_popup = False
 error_message = ""
 
-# Vérification initiale au démarrage
 for game in GAMES:
     if check_game_installed(game["id"]):
         install_status[game["id"]] = "installed"
 
-# --- Chargement des images ---
 def load_game_images():
     images = {}
     extensions = ('.jpg', '.jpeg', '.png', '.webp')
@@ -223,7 +207,6 @@ def scale_aspect_ratio(image, target_width, target_height):
     new_w, new_h = max(1, int(img_width * ratio)), max(1, int(img_height * ratio))
     return pygame.transform.smoothscale(image, (new_w, new_h)), new_w, new_h
 
-# --- Téléchargement et Installation ---
 def download_and_install_game(game):
     game_id = game["id"]
     install_status[game_id] = "downloading"
@@ -278,19 +261,16 @@ def download_and_install_game(game):
             if script_path:
                 os.chmod(script_path, 0o755)
 
-            # MET À JOUR DIRECTEMENT L'ÉTAT DU BOUTON EN VERT
             install_status[game_id] = "installed"
         else:
             install_status[game_id] = "idle"
     except Exception as e:
         print(f"Erreur d'installation : {e}")
-        # Si des fichiers ont quand même été extraits, on valide l'installation
         if check_game_installed(game_id):
             install_status[game_id] = "installed"
         else:
             install_status[game_id] = "idle"
 
-# --- Lancement du Jeu ---
 def launch_game(game):
     global show_error_popup, error_message
     
@@ -329,7 +309,6 @@ def uninstall_game(game):
         shutil.rmtree(game_folder)
     install_status[game_id] = "idle"
 
-# --- Layout ---
 SIDEBAR_WIDTH = 260
 ITEM_HEIGHT = 50
 GRID_X = SIDEBAR_WIDTH + 20
@@ -378,7 +357,6 @@ def draw_error_popup():
         return close_btn
     return None
 
-# --- Boucle Principale ---
 running = True
 while running:
     mouse_pos = pygame.mouse.get_pos()
@@ -434,7 +412,6 @@ while running:
                 else:
                     current_view = "library"
 
-    # ==================== VUE 1 : BIBLIOTHÈQUE ====================
     if current_view == "library":
         screen.fill(COLOR_BG)
         pygame.draw.rect(screen, COLOR_SIDEBAR_BG, (0, 0, SIDEBAR_WIDTH, HEIGHT))
@@ -468,7 +445,6 @@ while running:
             border_color = (100, 160, 255) if i == selected_index else COLOR_BORDER
             pygame.draw.rect(screen, border_color, card_rect, 4 if i == selected_index or card_rect.collidepoint(mouse_pos) else 1)
 
-    # ==================== VUE 2 : DÉTAIL DU JEU ====================
     elif current_view == "detail":
         screen.fill(COLOR_BG)
         game = GAMES[selected_index]
